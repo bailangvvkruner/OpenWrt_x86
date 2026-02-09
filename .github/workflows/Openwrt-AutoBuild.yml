@@ -112,7 +112,17 @@ jobs:
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
 
-        sudo timedatectl set-timezone "Asia/Shanghai"
+        # Fix hostname resolution issue
+        sudo bash -c 'echo "127.0.0.1 localhost $(hostname)" >> /etc/hosts'
+        
+        # Set timezone (compatible with both systemd and non-systemd systems)
+        if command -v timedatectl >/dev/null 2>&1; then
+            sudo timedatectl set-timezone "Asia/Shanghai"
+        else
+            # For Alpine/OpenRC systems
+            echo "Asia/Shanghai" | sudo tee /etc/timezone >/dev/null
+            sudo ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime >/dev/null 2>&1
+        fi
         git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config --global user.name "github-actions[bot]"
 
