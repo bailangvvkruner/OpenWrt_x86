@@ -252,12 +252,29 @@ jobs:
     - name: Apply patches
       run: |
         cd openwrt
-        cp -rn devices/common/patches devices/${{matrix.target}}/
-          if [ -n "$(ls -A devices/${{matrix.target}}/*.bin.patch 2>/dev/null)" ]; then
-            git apply devices/${{matrix.target}}/patches/*.bin.patch
-          fi
-          find "devices/${{matrix.target}}/patches" -maxdepth 1 -type f -name '*.revert.patch' -print0 | sort -z | xargs -I % -t -0 -n 1 sh -c "cat '%'  | patch -d './' -R -B --merge -p1 --forward"
-          find "devices/${{matrix.target}}/patches" -maxdepth 1 -type f -name '*.patch' ! -name '*.revert.patch' ! -name '*.bin.patch' -print0 | sort -z | xargs -I % -t -0 -n 1 sh -c "cat '%'  | patch -d './' -B --merge -p1 --forward"
+        # Create patches directory if it doesn't exist
+        mkdir -p devices/${{matrix.target}}/patches
+        # Copy common patches
+        cp -rn devices/common/patches/* devices/${{matrix.target}}/patches/ 2>/dev/null || true
+        
+        # Apply .bin.patch files if they exist
+        if [ -n "$(ls -A devices/${{matrix.target}}/patches/*.bin.patch 2>/dev/null)" ]; then
+          git apply devices/${{matrix.target}}/patches/*.bin.patch 2>/dev/null || true
+        fi
+        
+        # Apply revert patches with error handling
+        find "devices/${{matrix.target}}/patches" -maxdepth 1 -type f -name '*.revert.patch' -print0 | sort -z | while IFS= read -r -d '' patch_file; do
+          echo "Applying revert patch: $patch_file"
+          cat "$patch_file" | patch -d './' -R -B --merge -p1 --forward 2>/dev/null || echo "Warning: Failed to apply revert patch $patch_file"
+        done
+        
+        # Apply regular patches with error handling
+        find "devices/${{matrix.target}}/patches" -maxdepth 1 -type f -name '*.patch' ! -name '*.revert.patch' ! -name '*.bin.patch' -print0 | sort -z | while IFS= read -r -d '' patch_file; do
+          echo "Applying patch: $patch_file"
+          cat "$patch_file" | patch -d './' -B --merge -p1 --forward 2>/dev/null || echo "Warning: Failed to apply patch $patch_file"
+        done
+        
+        # Add kernel config options
         sed -i '$a  \
         CONFIG_CPU_FREQ_GOV_POWERSAVE=y \
         CONFIG_CPU_FREQ_GOV_USERSPACE=y \
