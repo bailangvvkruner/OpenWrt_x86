@@ -12,7 +12,8 @@ on:
   repository_dispatch:
 
   workflow_dispatch:
-
+  push:
+    branches: [ main ]
 env:
   REPO_TOKEN: ${{ secrets.TOKEN_MGZ0227 }}
   PPPOE_USERNAME: ${{ secrets.PPPOE_USERNAME }}
