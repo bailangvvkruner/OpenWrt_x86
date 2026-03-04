@@ -27,8 +27,13 @@ env:
 
 jobs:
   build:
-    runs-on: Ubuntu-latest
+    # runs-on: Ubuntu-latest
     #runs-on: self-hosted
+    runs-on:
+      # ubuntu-latest
+      - self-hosted
+      - linux
+      - x64
     steps:
     - name: Checkout
       uses: actions/checkout@main
